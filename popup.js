@@ -1,3 +1,6 @@
+// popup.js (the monolith)
+
+
 document.addEventListener("DOMContentLoaded", function () {
 
     const closeButton = document.getElementById("closeButton");
@@ -53,115 +56,21 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
         console.error("Playback helper link not found");
     }
-
-    // Setup Admin button event listener
-    const adminButton = document.getElementById('adminButton');
-    if (adminButton) {
-        adminButton.addEventListener('click', function () {
-            console.log('Admin button clicked');
-            openAdminPanel();
-        });
-    } else {
-        console.error("Admin button not found");
-    }
-
-    // Setup SCTE explainer link
-    const scteExplainer = document.getElementById("scteExplainer");
-    if (scteExplainer) {
-        scteExplainer.addEventListener("click", function (e) {
-            e.preventDefault();
-            openScteExplainer();
-        });
-    } else {
-        console.error("SCTE explainer link not found");
-    }
-
-    // Setup Cache explainer link
-    const cacheExplainer = document.getElementById("cacheExplainer");
-    if (cacheExplainer) {
-        cacheExplainer.addEventListener("click", function (e) {
-            e.preventDefault();
-            openCacheExplainer();
-        });
-    } else {
-        console.error("Cache explainer link not found");
-    }
-
-    // New code: Tab system handling
-    setupTabSystem();
-
-    // Initialize cache graph
-    initCacheGraph();
-
-    // Initialize ad ratio graph
-    initAdRatioGraph();
 });
 
-// Video playback
+// video playback
 function handlePlayVideo() {
     let url = document.getElementById("hlsUrl").value;
     let video = document.getElementById("videoPlayer");
 
-    // const isTestChannelURL = url.includes("/v1/live?") && 
-    //                          (url.includes("k8s-sportsprod") || 
-    //                           url.includes("k8s-sportsqa"));
-
-    // if (!isTestChannelURL && !url.endsWith(".m3u8")) {
-    //     alert("Please enter a valid HLS URL (.m3u8)");
-    //     return;
-    // }
-
-    // Reset QoE monitoring if available
-    if (window.qoeModule && window.qoeModule.qoeData) {
-        window.qoeModule.qoeData.reset();
+    if (!url.endsWith(".m3u8")) {
+        alert("Please enter a valid HLS URL (.m3u8)");
+        return;
     }
 
-    // Add this near the beginning of handlePlayVideo function (around line 102)
-    // Reset SCTE data when starting a new stream
-    console.log("Resetting SCTE data for new stream");
-    scteData = {
-        markers: [],
-        adCuePoints: [],
-        contentCuePoints: [],
-        adDuration: 0,
-        contentDuration: 0,
-        adCount: 0,
-        adCompletionRate: 100,
-        lastUpdate: 0
-    };
-
-    // Show SCTE detail section
-    document.getElementById('scteDetailSection').style.display = 'block';
-
-    // Add a button to force SCTE detail visibility (for debugging)
-    const scteDebugButton = document.createElement('button');
-    scteDebugButton.textContent = 'Debug SCTE';
-    scteDebugButton.style.position = 'fixed';
-    scteDebugButton.style.bottom = '10px';
-    scteDebugButton.style.right = '10px';
-    scteDebugButton.style.zIndex = '9999';
-    scteDebugButton.style.padding = '5px';
-    scteDebugButton.style.display = 'none'; // Hidden by default, only for development
-
-    scteDebugButton.addEventListener('click', function () {
-        console.log('Current SCTE Data:', scteData);
-
-        // Force show SCTE details
-        const scteDetailSection = document.getElementById('scteDetailSection');
-        if (scteDetailSection) {
-            scteDetailSection.style.display = 'block';
-        }
-
-        // Update all SCTE displays
-        updateScteDetailDisplay();
-        updateScteDisplay();
-        updateAdRatioGraph();
-    });
-
-    document.body.appendChild(scteDebugButton);
-
+    // HLS
     if (typeof Hls !== "undefined" && Hls.isSupported()) {
-        // An HLS instance with modified buffer settings
+        // CUSTOMIZED HLS instance with modified buffer settings
         let hls = new Hls({
             debug: true,                                // Enable debug logs
             loader: createCustomLoader(Hls),            // Use the custom loader
@@ -182,8 +91,7 @@ function handlePlayVideo() {
             manifestLoadingMaxRetryTimeout: 64000,      // Maximum retry timeout for manifest loading
         });
 
-        // Event listeners for manifest loading and processing
-        hls.on(Hls.Events.MANIFEST_LOADING, function (event, data) {
+        hls.on(Hls.Events.MANIFEST_LOADING, function(event, data) {
             console.log("Manifest loading:", data.url);
             addMetadataEntry(`Loading manifest: ${data.url}`);
         });
@@ -195,15 +103,15 @@ function handlePlayVideo() {
 
         hls.on(Hls.Events.MANIFEST_LOADED, function (event, data) {
             console.log("Manifest loaded:", data);
-
-            // Manifest info
+            
+            // manifest info
             let manifestInfo = `
                 Master manifest loaded:
                 URL: ${data.url}
                 Levels: ${data.levels.length}
             `;
-
-            // Information about available quality levels
+            
+            // display available levels
             data.levels.forEach((level, index) => {
                 manifestInfo += `
                 Level ${index}: ${level.width}x${level.height} @ ${Math.round(level.bitrate / 1000)}kbps
@@ -211,20 +119,20 @@ function handlePlayVideo() {
             });
 
             addMetadataEntry(manifestInfo);
-
-            // Fetch the raw manifest content to look for SCTE markers
+            
+            // fetch the raw manifest content to look for SCTE markers
             fetchAndParseManifest(data.url);
         });
 
         hls.on(Hls.Events.LEVEL_LOADING, function (event, data) {
             console.log("Level loading:", data.url);
             addMetadataEntry(`Loading level manifest: ${data.url}`);
-
-            // Fetch the media playlist to look for SCTE markers
+            
+            // fetch the media playlist to look for SCTE markers
             fetchAndParseManifest(data.url);
         });
 
-        // Add event listeners for segment loading
+        // add event listeners for segment loading
         hls.on(Hls.Events.FRAG_LOADING, function (event, data) {
             console.log("Fragment loading:", data.frag.url);
             addMetadataEntry(`Loading segment: ${data.frag.sn} (${data.frag.url})`);
@@ -240,9 +148,8 @@ function handlePlayVideo() {
             addMetadataEntry(segmentInfo);
         });
 
-        // Monitor for errors
+       // monitor for errors
         hls.on(Hls.Events.ERROR, function (event, data) {
-
             console.error("HLS Error:", {
                 type: data.type,
                 details: data.details,
@@ -273,6 +180,7 @@ function handlePlayVideo() {
                         hls.recoverMediaError();
                         break;
                     default:
+                        // fail point if it cannot recover
                         hls.destroy();
                         break;
                 }
@@ -281,7 +189,7 @@ function handlePlayVideo() {
             }
         });
 
-        // Load source / video
+        // load source and attach to video
         hls.loadSource(url);
         parseAndDisplayResolutions(url);
         hls.attachMedia(video);
@@ -294,10 +202,10 @@ function handlePlayVideo() {
             });
         });
 
-        // Fetch and display initial manifest metadata
+        // fetch and display initial manifest metadata
         fetchMetadata(url);
 
-        // Add buffer state monitoring
+        // add buffer state monitoring
         let bufferingIndicator = document.createElement('div');
         bufferingIndicator.id = 'bufferingIndicator';
         bufferingIndicator.textContent = 'Buffering...';
@@ -313,28 +221,28 @@ function handlePlayVideo() {
         bufferingIndicator.style.zIndex = '1000';
         document.querySelector('.video-container').appendChild(bufferingIndicator);
 
-        // Monitor for buffer stalling
+        // monitor for buffer stalling
         hls.on(Hls.Events.ERROR, function (event, data) {
+            // if the error is related to buffer stalling
             if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR) {
                 bufferingIndicator.style.display = 'block';
                 addMetadataEntry('Playback stalled due to insufficient buffer', true);
             }
         });
-
-        // CHECK: Specific listener for buffer stalling
+        
         hls.on(Hls.Events.BUFFER_STALLING, function () {
             bufferingIndicator.style.display = 'block';
             addMetadataEntry('Buffer stalling detected', true);
         });
 
-        // CHECK: for buffering completion
+        // monitor for buffering completion
         hls.on(Hls.Events.BUFFER_APPENDED, function () {
             if (video.readyState >= 3) { // HAVE_FUTURE_DATA or higher
                 bufferingIndicator.style.display = 'none';
             }
         });
 
-        // CHECK: video element buffering states
+        // monitor video element buffering states
         video.addEventListener('waiting', function () {
             bufferingIndicator.style.display = 'block';
         });
@@ -352,7 +260,7 @@ function handlePlayVideo() {
     }
 }
 
-// Helper function to add entries to metadata list with a buffer
+// helper function to add entries to metadata list
 function addMetadataEntry(text, isError = false, isHighlighted = false) {
     // If metadataBuffer is available, use it (as defined in metadata.js)
     if (window.metadataBuffer && typeof window.metadataBuffer.addEntry === 'function') {
@@ -362,8 +270,8 @@ function addMetadataEntry(text, isError = false, isHighlighted = false) {
     // Fallback to original implementation if buffer not available
     let metadataList = document.getElementById("metadataList");
     let entry = document.createElement("div");
-
-    // Use innerHTML for formatting if needed
+    
+    // feed to innerHTML for formatting 
     if (text.includes('\n')) {
         entry.innerHTML = text.replace(/\n/g, '<br>');
     } else {
@@ -376,55 +284,52 @@ function addMetadataEntry(text, isError = false, isHighlighted = false) {
     }
 
     if (isHighlighted) {
-        entry.style.backgroundColor = "#fffbcd"; // Light yellow highlight
-        entry.style.padding = "5px";
-        entry.style.border = "1px solid #ffeb3b";
+      entry.style.backgroundColor = "#fffbcd";
+      entry.style.padding = "5px";
+      entry.style.border = "1px solid #ffeb3b";
     }
-
-    // Add timestamp
+  
+    // timestamp
     let timestamp = new Date().toLocaleTimeString();
     let timeElement = document.createElement("span");
     timeElement.textContent = `[${timestamp}] `;
     timeElement.style.color = "#888";
 
     entry.prepend(timeElement);
-
-    // Insert at the top
+  
     if (metadataList.firstChild) {
         metadataList.insertBefore(entry, metadataList.firstChild);
     } else {
         metadataList.appendChild(entry);
     }
-
-    // Add a separator
+  
+    // separator
     let separator = document.createElement("hr");
     metadataList.insertBefore(separator, entry.nextSibling);
 }
 
-// Custom loader function to capture response headers
+// loader function to capture response headers
 function createCustomLoader(Hls) {
     const XhrLoader = Hls.DefaultConfig.loader;
+
+    // a custom loader class
     class HeaderCaptureLoader extends XhrLoader {
         constructor(config) {
             super(config);
             const load = this.load.bind(this);
 
             this.load = function (context, config, callbacks) {
-                // Store original callbacks
                 const originalOnSuccess = callbacks.onSuccess;
 
-                // Override success callback to capture headers
                 callbacks.onSuccess = function (response, stats, context, xhr) {
-                    // NOTE: access the headers
                     if (xhr && xhr.getAllResponseHeaders) {
 
-                        // Debugging
+                        // DEBUGGER
                         console.log('Raw header string:', xhr.getAllResponseHeaders());
 
                         const headerString = xhr.getAllResponseHeaders();
                         const headers = {};
 
-                        // Parse the header string
                         headerString.split('\r\n').forEach(line => {
                             if (line) {
                                 const parts = line.split(': ');
@@ -436,15 +341,12 @@ function createCustomLoader(Hls) {
 
                         console.log('Segment response headers:', headers);
 
-                        // Display headers in UI
                         if (context.url.includes('.ts') || context.url.includes('.m4s')) {
                             addHeadersToMetadata(context.url, headers);
                         }
                     }
-                    // Call original callback
                     originalOnSuccess(response, stats, context, xhr);
                 };
-                // Call the original load method
                 load(context, config, callbacks);
             };
         }
@@ -453,86 +355,20 @@ function createCustomLoader(Hls) {
     return HeaderCaptureLoader;
 }
 
-// Function to display headers in the UI
+// function to display headers
 function addHeadersToMetadata(url, headers) {
-    // Get segment filename from URL
     const filename = url.split('/').pop();
-
-    // Create header display text
     let headerText = `Headers for ${filename}:\n`;
 
-    // Check for cache hit/miss
-    let cacheStatus = null;
-
-    // Add ALL headers instead of just important ones
     if (headers) {
-        // If headers is an object with key-value pairs
         Object.keys(headers).forEach(header => {
             headerText += `${header}: ${headers[header]}\n`;
-            // Look for cache-related headers
-            if (header.toLowerCase() === 'x-cache' ||
-                header.toLowerCase() === 'cf-cache-status' ||
-                header.toLowerCase() === 'x-cache-lookup' ||
-                header.toLowerCase() === 'x-cache-hits' ||
-                header.toLowerCase() === 'age') {
-
-                const value = headers[header].toLowerCase();
-
-                // Handle Akamai's specific x-cache-hits format (e.g., "0, 0")
-                if (header.toLowerCase() === 'x-cache-hits') {
-                    const hits = value.split(',').map(v => parseInt(v.trim()));
-                    if (hits.some(hit => hit > 0)) {
-                        cacheStatus = true;  // Cache hit
-                    } else {
-                        cacheStatus = false;  // Cache miss
-                    }
-                }
-                // Handle standard cache headers
-                else if (value.includes('hit') ||
-                    (header.toLowerCase() === 'age' && parseInt(value) > 0)) {
-                    cacheStatus = true;  // Cache hit
-                } else if (value.includes('miss') ||
-                    (header.toLowerCase() === 'age' && parseInt(value) === 0)) {
-                    cacheStatus = false;  // Cache miss
-                }
-            }
-
-            // Also check for Akamai-specific headers that might indicate cache status
-            if (header.toLowerCase() === 'x-cdn' && headers[header].toLowerCase() === 'akamai') {
-                // If we haven't determined cache status yet, look for other Akamai indicators
-                if (cacheStatus === null) {
-                    // Look for x-served-by header to try to determine cache status
-                    const servedBy = headers['x-served-by'] || '';
-                    if (servedBy.toLowerCase().includes('cache-')) {
-                        // This is a heuristic - might need adjustment based on actual Akamai behavior
-                        cacheStatus = servedBy.split(',').length > 1;
-                    }
-                }
-            }
         });
     }
-
-    // Update cache graph if we found a cache status
-    if (cacheStatus !== null && url.includes('.ts')) {
-        updateCacheGraph(cacheStatus);
-    }
-
-    // Add TTL extraction here - OUTSIDE the loop
-    if (url.includes('.ts') || url.includes('.m4s') || url.includes('.m3u8')) {
-        const ttlInfo = extractTTLInfo(headers);
-        if (ttlInfo.hasDirectives) {
-            // Update the latest TTL info
-            latestTTLInfo = ttlInfo;
-            // Update the display
-            updateCacheTTLDisplay(ttlInfo);
-        }
-    }
-
-    // Add to metadata panel
     addMetadataEntry(headerText);
 }
 
-// Function to fetch and parse manifests for SCTE and other metadata
+// function to fetch and parse manifests for SCTE
 async function fetchAndParseManifest(url) {
     try {
         // Add a timeout to prevent long-hanging requests
@@ -552,32 +388,22 @@ async function fetchAndParseManifest(url) {
         clearTimeout(timeoutId);
 
         const headers = {};
-
-        // Get response headers
+        
+        // response headers
         response.headers.forEach((value, key) => {
             headers[key] = value;
         });
-
-        // Log headers
+        
         console.log(`Manifest headers for ${url}:`, headers);
-
-        // Display headers in metadata panel
+        
         let headerText = `Manifest headers for ${url.split('/').pop()}:\n`;
         Object.keys(headers).forEach(header => {
             headerText += `${header}: ${headers[header]}\n`;
         });
         addMetadataEntry(headerText);
-
+        
         const text = await response.text();
-
-        // Track important context markers for better ad detection
-        let foundKeyMethodNone = false;
-        let foundKeyMethodAES = false;
-        let foundDiscontinuity = false;
-        let foundProgramDateTimeChanges = false;
-        let lastProgramDateTime = null;
-
-        // Look for SCTE markers and other important tags
+        
         const scteLines = [];
         const otherMetadata = [];
 
@@ -588,95 +414,32 @@ async function fetchAndParseManifest(url) {
         let foundScteMarkers = false;
 
         text.split('\n').forEach(line => {
-            const trimmedLine = line.trim();
-
-            // Track encryption method changes which can signal content transitions
-            if (/^#EXT-X-KEY:METHOD=NONE(?:$|\s|;)/.test(trimmedLine)) {
-                foundKeyMethodNone = true;
-            } else if (/^#EXT-X-KEY:METHOD=AES-128(?:$|\s|;)/.test(trimmedLine)) {
-                foundKeyMethodAES = true;
+            //  SCTE-35 tags
+            // TODO: add SCTE marker per Josh recommendations 04-25-25
+            if (line.includes('SCTE') || 
+                line.includes('CUE-OUT') || 
+                line.includes('CUE-IN') || 
+                line.includes('DATERANGE') ||
+                line.includes('MARKER')) {
+                scteLines.push(line);
             }
 
-            // Track program date time changes
-            if (/^#EXT-X-PROGRAM-DATE-TIME:/.test(trimmedLine)) {
-                const dateMatch = trimmedLine.match(/^#EXT-X-PROGRAM-DATE-TIME:(.+?)(?:Z|$)/);
-                if (dateMatch && dateMatch[1]) {
-                    const currentDateTime = new Date(dateMatch[1] + (dateMatch[1].endsWith('Z') ? '' : 'Z')).getTime();
-                    if (lastProgramDateTime) {
-                        // Check for non-sequential jumps in program date time
-                        const diff = Math.abs(currentDateTime - lastProgramDateTime);
-                        // If more than 5 seconds gap, might indicate content boundary
-                        if (diff > 5000) {
-                            foundProgramDateTimeChanges = true;
-                        }
-                    }
-                    lastProgramDateTime = currentDateTime;
-                }
-            }
-
-            // Look for SCTE-35 related tags with more precise matching
-            if (/^#EXT-X-SCTE35:|^#EXT-X-CUE:|^#EXT-X-CUE-OUT|^#EXT-X-CUE-IN|^#EXT-X-DATERANGE|^#EXT-X-MARKER|^#EXT-X-DISCONTINUITY$/.test(trimmedLine)) {
-                scteLines.push(trimmedLine);
-
-                // Exact match for discontinuity tag
-                foundDiscontinuity = foundDiscontinuity || trimmedLine === '#EXT-X-DISCONTINUITY';
-
-                // Process for SCTE tracking with proper time context
-                const newMarkerProcessed = processSCTEMarker(trimmedLine, currentTime);
-                if (newMarkerProcessed) {
-                    foundScteMarkers = true;
-                    console.log(`Processed SCTE marker: ${trimmedLine}`);
-                }
-            }
-            // Capture other metadata tags with more precise matching
-            else if (/^#EXT(?!INF|(?:-X-BYTERANGE))/.test(trimmedLine)) {
-                otherMetadata.push(trimmedLine);
+            else if (line.startsWith('#EXT') && 
+                    !line.startsWith('#EXTINF') && 
+                    !line.startsWith('#EXT-X-BYTERANGE')) {
+                otherMetadata.push(line);
             }
         });
-
-        // Additional processing for discontinuity markers in context
-        if (foundDiscontinuity && !foundScteMarkers && (foundKeyMethodNone || foundKeyMethodAES || foundProgramDateTimeChanges)) {
-            // Store context for better discontinuity processing
-            window.streamContext = {
-                foundKeyMethodNone: foundKeyMethodNone,
-                foundKeyMethodAES: foundKeyMethodAES,
-                foundProgramDateTimeChanges: foundProgramDateTimeChanges,
-                url: url
-            };
-
-            console.log("Detected potential content transition markers:", window.streamContext);
-        }
-
-        // Display SCTE markers if found
+        
+        // display SCTE markers 
         if (scteLines.length > 0) {
             let scteInfo = `SCTE markers in ${url.split('/').pop()}:\n`;
             scteLines.forEach(line => {
                 scteInfo += `${line}\n`;
             });
-            addMetadataEntry(scteInfo, false, true); // Highlight SCTE info
-
-            // Show SCTE detail section if we found markers
-            document.getElementById('scteDetailSection').style.display = 'block';
-
-            // Add toggle link if not already present
-            if (!document.getElementById('scteDetailToggle')) {
-                const scteDisplay = document.getElementById('scteDisplay');
-                const toggleLink = document.createElement('span');
-                toggleLink.id = 'scteDetailToggle';
-                toggleLink.className = 'scte-detail-toggle';
-                toggleLink.textContent = 'Show SCTE-35 Details';
-                toggleLink.addEventListener('click', toggleScteDetails);
-
-                // Add it after the first child of scteDisplay
-                if (scteDisplay.firstChild) {
-                    scteDisplay.insertBefore(toggleLink, scteDisplay.firstChild.nextSibling);
-                } else {
-                    scteDisplay.appendChild(toggleLink);
-                }
-            }
+            addMetadataEntry(scteInfo, false, true); 
         }
-
-        // Display other metadata
+        
         if (otherMetadata.length > 0) {
             let metadataInfo = `Metadata in ${url.split('/').pop()}:\n`;
             otherMetadata.forEach(line => {
@@ -686,283 +449,17 @@ async function fetchAndParseManifest(url) {
         }
     } catch (error) {
         console.error("Error fetching manifest:", error);
-
-        // Provide more detailed error message
-        let errorMessage = `Error fetching manifest ${url}: `;
-
-        if (error.name === 'AbortError') {
-            errorMessage += 'Request timed out after 10 seconds';
-        } else if (error.message.includes('NetworkError')) {
-            errorMessage += 'Network error (possibly CORS related). This is common and non-critical for cross-origin requests.';
-        } else {
-            errorMessage += error.message;
-        }
-
-        // Mark as non-critical error if it's likely a CORS issue with a third-party URL
-        const isCORSLikelyIssue = !url.includes(window.location.hostname) &&
-            (error.message.includes('Failed to fetch') ||
-                error.message.includes('NetworkError'));
-
-        addMetadataEntry(errorMessage, !isCORSLikelyIssue);
+        addMetadataEntry(`Error fetching manifest ${url}: ${error.message}`, true);
     }
 }
 
-// Modify the processSCTEMarker function (around line 831)
-function processSCTEMarker(marker, currentTime) {
-    // Skip if this is a duplicate marker (based on time)
-    if (scteData.markers.some(m => m.time === currentTime && m.marker === marker)) {
-        return false;
-    }
-
-    // Handle discontinuity markers which often indicate ad boundaries
-    let markerType = 'unknown';
-    let duration = 0;
-    let parsedScte35 = null;
-
-    // Check for discontinuity which might indicate ad boundaries
-    const isDiscontinuity = /^#EXT-X-DISCONTINUITY(?:$|\r|\n)/.test(marker);
-
-    // Use our SCTE35Parser to extract data if available
-    if (window.SCTE35Parser && !isDiscontinuity) {
-        parsedScte35 = window.SCTE35Parser.extractFromHLSTags(marker);
-    }
-
-    if (parsedScte35) {
-        console.log("Parsed SCTE-35 data:", parsedScte35);
-
-        // Determine if this is an ad start or end based on the parsed data
-        if (parsedScte35.spliceCommandType === 0x05 && parsedScte35.spliceCommandInfo) {
-            // Splice Insert command
-            if (!parsedScte35.spliceCommandInfo.spliceEventCancelIndicator) {
-                markerType = parsedScte35.spliceCommandInfo.outOfNetworkIndicator ? 'ad-start' : 'ad-end';
-
-                // Get duration if available
-                if (parsedScte35.spliceCommandInfo.breakDuration) {
-                    duration = parsedScte35.spliceCommandInfo.breakDuration.duration / 90000; // Convert from 90kHz to seconds
-                }
-            }
-        } else if (parsedScte35.spliceCommandType === 0x07 && parsedScte35.descriptors) {
-            // Time Signal command - check for segmentation descriptors
-            const segDescriptors = parsedScte35.descriptors.filter(d => d.tag === 0x02);
-
-            if (segDescriptors.length > 0 && segDescriptors[0].info) {
-                const segInfo = segDescriptors[0].info;
-
-                if (segInfo.isAdStart) {
-                    markerType = 'ad-start';
-                } else if (segInfo.isAdEnd) {
-                    markerType = 'ad-end';
-                }
-
-                // Get duration if available
-                if (segInfo.segmentationDuration) {
-                    duration = segInfo.segmentationDuration / 90000; // Convert from 90kHz to seconds
-                }
-            }
-        }
-    } else if (marker.includes('CUE-OUT') || marker.includes('SCTE35-OUT')) {
-        markerType = 'ad-start';
-        // Try to extract duration if available (e.g., #EXT-X-CUE-OUT:30)
-        const durationMatch = marker.match(/CUE-OUT:(\d+)/);
-        if (durationMatch) {
-            duration = parseInt(durationMatch[1], 10);
-        }
-    } else if (marker.includes('CUE-IN') || marker.includes('SCTE35-IN')) {
-        markerType = 'ad-end';
-    } else if (marker.includes('DATERANGE') && marker.includes('DURATION')) {
-        // Extract information from DATERANGE tag
-        const durationMatch = marker.match(/DURATION=(\d+(?:\.\d+)?)/);
-        if (durationMatch) {
-            duration = parseFloat(durationMatch[1]);
-        }
-
-        if (marker.includes('SCTE35-OUT')) {
-            markerType = 'ad-start';
-        } else if (marker.includes('SCTE35-IN')) {
-            markerType = 'ad-end';
-        }
-    } else if (isDiscontinuity) {
-        // If it's a discontinuity, use the dedicated handler
-        return processDiscontinuityMarker(marker, currentTime);
-    }
-
-    // If we couldn't determine marker type, don't process it
-    if (markerType === 'unknown') {
-        console.log("Unknown marker type, not processing");
-        return false;
-    }
-
-    console.log(`Marker processed as type: ${markerType}, duration: ${duration}`);
-
-    // Add to markers list with debugging info
-    scteData.markers.push({
-        time: currentTime,
-        marker: marker,
-        type: markerType,
-        duration: duration,
-        parsed: parsedScte35,
-        description: isDiscontinuity ? "Discontinuity marker (ad boundary)" :
-            parsedScte35 ? window.SCTE35Parser.getHumanReadableDescription(parsedScte35) :
-                "SCTE-35 marker"
-    });
-
-    // Update ad/content tracking
-    updateAdTracking(markerType, duration, currentTime);
-
-    // Update SCTE details display
-    updateScteDetailDisplay();
-
-    // Update the main display
-    updateScteDisplay();
-
-    // Return true if we processed a new marker
-    return true;
+// function to fetch metadata (placeholder)
+function fetchMetadata(url) {
+    console.log("Fetching metadata for:", url);
+    // TODO: add metadata fetching logic here -- may grab  ID3 and Nelson watermarks (per Josh - 04-25-25)
 }
 
-// Add function to toggle SCTE details display
-// Add toggle function for SCTE details
-function toggleScteDetails(e) {
-    if (e) e.preventDefault();
-
-    const detailSection = document.getElementById('scteDetailSection');
-    const toggleLink = document.getElementById('scteDetailToggle');
-
-    if (!detailSection || !toggleLink) return;
-
-    if (detailSection.style.display === 'none') {
-        detailSection.style.display = 'block';
-        toggleLink.textContent = 'Hide SCTE-35 Details';
-    } else {
-        detailSection.style.display = 'none';
-        toggleLink.textContent = 'Show SCTE-35 Details';
-    }
-}
-
-// Update SCTE details display
-function updateScteDetailDisplay() {
-    const container = document.getElementById('scteDetailContainer');
-    if (!container) return;
-
-    // Clear container
-    container.innerHTML = '';
-
-    if (scteData.markers.length === 0) {
-        container.innerHTML = '<div class="scte-detail-empty">No SCTE-35 signals decoded yet</div>';
-        return;
-    }
-
-    // Get the last 5 markers (most recent first)
-    const recentMarkers = scteData.markers.slice(-5).reverse();
-
-    // Add each marker to the display
-    recentMarkers.forEach(marker => {
-        const signalElement = document.createElement('div');
-        signalElement.className = `scte-signal ${marker.type}`;
-
-        // Create header with type and time
-        const headerElement = document.createElement('div');
-        headerElement.className = 'scte-signal-header';
-
-        const typeElement = document.createElement('div');
-        typeElement.className = 'scte-signal-type';
-        typeElement.textContent = marker.type === 'ad-start' ? 'Ad Start' :
-            marker.type === 'ad-end' ? 'Ad End' : 'Marker';
-
-        const timeElement = document.createElement('div');
-        timeElement.className = 'scte-signal-time';
-        timeElement.textContent = `Time: ${marker.time.toFixed(2)}s`;
-
-        headerElement.appendChild(typeElement);
-        headerElement.appendChild(timeElement);
-
-        // Create description
-        const descriptionElement = document.createElement('div');
-        descriptionElement.className = 'scte-signal-description';
-        descriptionElement.textContent = marker.description || 'SCTE-35 Signal';
-
-        // Create details element if we have parsed data
-        let detailsElement = null;
-        if (marker.parsed) {
-            detailsElement = document.createElement('div');
-            detailsElement.className = 'scte-signal-details';
-
-            // Add command type
-            if (marker.parsed.spliceCommandTypeName) {
-                detailsElement.textContent += `Command: ${marker.parsed.spliceCommandTypeName}`;
-            }
-
-            // Add event ID if available
-            if (marker.parsed.spliceCommandInfo && marker.parsed.spliceCommandInfo.spliceEventId !== undefined) {
-                detailsElement.textContent += ` | Event ID: ${marker.parsed.spliceCommandInfo.spliceEventId}`;
-            }
-
-            // Add PTS time if available
-            if (marker.parsed.spliceCommandInfo &&
-                marker.parsed.spliceCommandInfo.spliceTime &&
-                marker.parsed.spliceCommandInfo.spliceTime.ptsTime) {
-                const ptsFormatted = window.formatScteTime ?
-                    window.formatScteTime(marker.parsed.spliceCommandInfo.spliceTime.ptsTime) :
-                    marker.parsed.spliceCommandInfo.spliceTime.ptsTime;
-                detailsElement.textContent += ` | PTS: ${ptsFormatted}`;
-            }
-
-            // Add duration if available (formatted)
-            if (marker.duration) {
-                detailsElement.textContent += ` | Duration: ${marker.duration.toFixed(1)}s`;
-            }
-        }
-
-        // Assemble the signal element
-        signalElement.appendChild(headerElement);
-        signalElement.appendChild(descriptionElement);
-        if (detailsElement) signalElement.appendChild(detailsElement);
-
-        container.appendChild(signalElement);
-    });
-
-    // Update timeline
-    updateScteTimeline();
-}
-
-// Update SCTE timeline
-function updateScteTimeline() {
-    const timeline = document.getElementById('scteTimeline');
-    if (!timeline) return;
-
-    // Clear timeline
-    timeline.innerHTML = '';
-
-    // Get video duration
-    const video = document.getElementById('videoPlayer');
-    if (!video || !video.duration) return;
-
-    const duration = video.duration;
-    const width = timeline.clientWidth;
-
-    // Add markers to timeline
-    scteData.markers.forEach(marker => {
-        if (marker.time <= duration) {
-            const position = (marker.time / duration) * width;
-
-            const markerElement = document.createElement('div');
-            markerElement.className = `scte-marker-point ${marker.type}`;
-            markerElement.style.left = `${position}px`;
-
-            // Add tooltip with time and description
-            markerElement.title = `${marker.type === 'ad-start' ? 'Ad Start' : 'Ad End'} at ${marker.time.toFixed(2)}s`;
-
-            timeline.appendChild(markerElement);
-        }
-    });
-}
-
-// // Function to fetch metadata (placeholder - you may need to implement this)
-// function fetchMetadata(url) {
-//     console.log("Fetching metadata for:", url);
-//     // Implementation depends on what metadata you want to fetch
-// }
-
-// Function to parse and display available resolutions
+// function to parse and display available resolutions
 function parseAndDisplayResolutions(manifestUrl) {
     fetch(manifestUrl)
         .then(response => response.text())
@@ -979,7 +476,7 @@ function parseAndDisplayResolutions(manifestUrl) {
                 if (line.includes('#EXT-X-STREAM-INF:') && line.includes('RESOLUTION=')) {
                     resolutionCount++;
 
-                    // Extract resolution information
+                    // extract resolution information
                     const resolutionMatch = line.match(/RESOLUTION=(\d+x\d+)/);
                     const bandwidthMatch = line.match(/BANDWIDTH=(\d+)/);
 
@@ -1009,17 +506,14 @@ function parseAndDisplayResolutions(manifestUrl) {
 
 
 function openHelperPopup() {
-    // Calculate center position for the popup
     const width = 600;
     const height = 600;
     const left = (window.screen.width / 2) - (width / 2);
     const top = (window.screen.height / 2) - (height / 2);
-
-    // Open a new window
-    const helperWindow = window.open('helper.html', 'playbackHelper',
+    
+    const helperWindow = window.open('helper.html', 'playbackHelper', 
         `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`);
-
-    // Focus the new window
+    
     if (helperWindow) {
         helperWindow.focus();
     } else {

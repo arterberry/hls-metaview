@@ -1,15 +1,10 @@
-// ai-analyzer.js - Platform Compatibility Analysis for VIDINFRA MetaView
+// ai-analyzer.js - 
 
-/**
- * AI analysis module for HLS stream compatibility analysis
- * Uses data gathered from the player and manifest to determine platform compatibility
- */
-
-// Main AI Analysis module
+// main module
 const aiAnalyzer = {
-    // Configuration
+    // configuration
     config: {
-        maxDataCollectionTime: 240, // 4 minutes in seconds
+        maxDataCollectionTime: 240, // load 4 minutes of data - in seconds (can be costly)
         providers: {
             gemini: 'gemini',
             anthropic: 'anthropic'
@@ -29,7 +24,7 @@ const aiAnalyzer = {
         }
     },
 
-    // Current state
+    // current state
     state: {
         analyzing: false,
         dataCollectionStartTime: null,
@@ -49,13 +44,13 @@ const aiAnalyzer = {
         analysis: null
     },
 
-    // Initialize the analyzer
+    // initialize the analyzer
     init: function () {
         console.log("Initializing AI Analyzer module...");
         this.setupEventListeners();
     },
 
-    // Setup event listeners
+    // event listeners
     setupEventListeners: function () {
         const analyzeButton = document.getElementById('analyzeCompatibilityBtn');
         if (analyzeButton) {
@@ -64,25 +59,24 @@ const aiAnalyzer = {
             console.error("AI Analyzer: Analyze button not found in DOM");
         }
 
-        // Listen for video play event to begin data collection
         const videoElement = document.getElementById('videoPlayer');
         if (videoElement) {
             videoElement.addEventListener('playing', () => this.beginDataCollection());
         }
     },
 
-    // Begin collecting data when a stream starts playing
+    // collect data when a stream starts playing
     beginDataCollection: function () {
         console.log("AI Analyzer: Beginning data collection");
-        // Reset collected data
+
         this.resetCollectedData();
         this.state.dataCollectionStartTime = Date.now();
 
-        // Start collecting available data immediately
+        // get already collected data
         this.collectInitialData();
     },
 
-    // Reset collected data
+    // reset collected data
     resetCollectedData: function () {
         this.state.collectedData = {
             manifestType: null,
@@ -100,30 +94,30 @@ const aiAnalyzer = {
         this.state.analysis = null;
     },
 
-    // Collect initial data from the page
+    // collect initial data from the page
     collectInitialData: function () {
-        // Get resolution ladder from the resolution list
+        // resolution ladder from the resolution list
         this.collectResolutionLadder();
 
-        // Try to determine if this is a VOD or LIVE stream
+        // determine if this is a VOD or LIVE stream
         this.determineManifestType();
 
-        // Check for HLS version
+        // check for HLS version
         this.determineHlsVersion();
 
-        // Get available codec information
+        // available codec information
         this.collectCodecInformation();
 
-        // Get audio track information
+        // TODO: audio track information (get from QoE data once available: IN PROGRESS)
         this.collectAudioTracks();
 
-        // Check for DRM signals
+        // TODO: check for DRM signals (IN PROGRESS)
         this.checkForDrmSignals();
 
         console.log("AI Analyzer: Initial data collection complete", this.state.collectedData);
     },
 
-    // Collect resolution ladder from the UI
+    // collect resolution ladder
     collectResolutionLadder: function () {
         const resolutionItems = document.querySelectorAll('.resolution-item');
         const resolutionLadder = [];
@@ -141,9 +135,8 @@ const aiAnalyzer = {
         }
     },
 
-    // Determine if this is a VOD or LIVE stream
+    //  VOD or LIVE stream
     determineManifestType: function () {
-        // Check for live indicators in the metadata panel
         const metadataItems = document.querySelectorAll('#metadataList div');
         let isLive = false;
 
@@ -164,14 +157,13 @@ const aiAnalyzer = {
         if (isLive && !this.state.collectedData.manifestType) {
             this.state.collectedData.manifestType = "LIVE";
         } else if (!this.state.collectedData.manifestType) {
-            // Default to VOD if we can't determine
+            // default to VOD if indeterminate
             this.state.collectedData.manifestType = "VOD";
         }
     },
 
-    // Determine HLS version
+    // identify hls version
     determineHlsVersion: function () {
-        // Look for version tag in metadata
         const metadataItems = document.querySelectorAll('#metadataList div');
         let version = null;
 
@@ -188,19 +180,19 @@ const aiAnalyzer = {
         }
     },
 
-    // Collect codec information
+    // collect codec information
     collectCodecInformation: function () {
         const metadataItems = document.querySelectorAll('#metadataList div');
         const videoCodecs = new Set();
 
         metadataItems.forEach(item => {
             const text = item.textContent;
-            // Look for codec information in CODECS attribute
+
             const codecMatch = text.match(/CODECS="([^"]+)"/);
             if (codecMatch && codecMatch[1]) {
                 const codecs = codecMatch[1].split(',').map(c => c.trim());
                 codecs.forEach(codec => {
-                    // Only add video codecs (usually start with avc, hvc, hev, or vp)
+                    // add video codecs (usually start with avc, hvc, hev, or vp)
                     if (codec.startsWith('avc') ||
                         codec.startsWith('hvc') ||
                         codec.startsWith('hev') ||
@@ -216,15 +208,14 @@ const aiAnalyzer = {
         }
     },
 
-    // Collect audio track information
+    // TODO: IN POROGRESS - collect audio track information
     collectAudioTracks: function () {
-        // Check if QoE data contains audio track info
+
         if (window.qoeModule && window.qoeModule.qoeData && window.qoeModule.qoeData.audioTracks) {
             this.state.collectedData.audioTracks = [...window.qoeModule.qoeData.audioTracks];
             return;
         }
 
-        // Fallback: try to extract from metadata
         const audioTracks = [];
         const metadataItems = document.querySelectorAll('#metadataList div');
 
@@ -253,7 +244,7 @@ const aiAnalyzer = {
         }
     },
 
-    // Check for DRM signals
+    // TODO: IN PROGRESS - check DRM signals
     checkForDrmSignals: function () {
         const metadataItems = document.querySelectorAll('#metadataList div');
         let contentProtectionMethods = new Set();
@@ -261,7 +252,7 @@ const aiAnalyzer = {
         metadataItems.forEach(item => {
             const text = item.textContent.toLowerCase();
 
-            // Check for DRM signals
+            // DRM signal types
             if (text.includes('widevine') || text.includes('urn:uuid:edef8ba9-79d6-4ace-a3c8-27dcd51d21ed')) {
                 this.state.collectedData.drmSignals.widevine = true;
             }
@@ -272,7 +263,7 @@ const aiAnalyzer = {
                 this.state.collectedData.drmSignals.fairplay = true;
             }
 
-            // Check for encryption methods
+            // encryption methods
             if (text.includes('sample-aes')) {
                 contentProtectionMethods.add('SAMPLE-AES');
             }
@@ -289,57 +280,56 @@ const aiAnalyzer = {
         }
     },
 
-    // Handle the analysis button click
+    // analysis click
     handleAnalysisRequest: function () {
         if (this.state.analyzing) {
             console.log("Analysis already in progress");
             return;
         }
 
-        // Check if we have collected data
         if (!this.hasCollectedData()) {
             this.displayAnalysisError("No stream data collected. Please play a stream first.");
             return;
         }
 
-        // Check if we have collected data for less than 4 minutes
+        // IMPORTANT: check for collected data - less than 4 minutes
         if (this.state.dataCollectionStartTime) {
             const collectionTime = (Date.now() - this.state.dataCollectionStartTime) / 1000;
             if (collectionTime > this.config.maxDataCollectionTime) {
                 console.log(`Data collection time (${collectionTime}s) exceeds max (${this.config.maxDataCollectionTime}s). Truncating data.`);
-                // We could add data truncation here if needed
+                // TODO: add data truncation - this can get fat
             }
         }
 
-        // Start analysis
+        // analysis call
         this.startAnalysis();
     },
 
-    // Check if we have collected enough data
+    // double check if collected enough data
     hasCollectedData: function () {
         return this.state.collectedData.resolutionLadder.length > 0 ||
             this.state.collectedData.videoCodecs.length > 0;
     },
 
-    // Start the analysis process
+    // start analysis process
     startAnalysis: function () {
         this.state.analyzing = true;
         this.updateAnalysisStatus("Analyzing stream compatibility...");
 
-        // Get API key from storage
+        // need key
         this.getApiKey()
             .then(apiKey => {
                 if (!apiKey) {
                     throw new Error("No API key found. Please add your API key in Admin settings.");
                 }
 
-                // Get provider from storage (default to anthropic)
+                // llm provider
                 return this.getProvider().then(provider => ({ apiKey, provider }));
             })
             .then(({ apiKey, provider }) => {
                 console.log(`Using ${provider} provider for analysis`);
 
-                // Build prompt and send to LLM
+                // build prompt and send to LLM
                 return this.analyzePlatformCompatibility(provider, apiKey, this.state.collectedData);
             })
             .then(analysis => {
@@ -354,7 +344,7 @@ const aiAnalyzer = {
             });
     },
 
-    // Get API key from storage
+    // API key from storage
     getApiKey: function () {
         return new Promise((resolve, reject) => {
             try {
@@ -368,7 +358,7 @@ const aiAnalyzer = {
         });
     },
 
-    // Get provider from storage
+    // get provider from storage
     getProvider: function () {
         return new Promise((resolve, reject) => {
             try {
@@ -377,12 +367,12 @@ const aiAnalyzer = {
                 });
             } catch (error) {
                 console.error("Error getting provider from storage:", error);
-                resolve(aiAnalyzer.config.defaultProvider); // Fallback to default provider
+                resolve(aiAnalyzer.config.defaultProvider); // fallback to default provider
             }
         });
     },
 
-    // Update analysis status message
+    // analysis status message
     updateAnalysisStatus: function (message) {
         const resultArea = document.getElementById('compatibilityResults');
         if (resultArea) {
@@ -390,14 +380,14 @@ const aiAnalyzer = {
         }
     },
 
-    // Display analysis result
+    // analysis result
     displayAnalysisResult: function (analysis) {
         const resultArea = document.getElementById('compatibilityResults');
         if (!resultArea) return;
 
         let html = '<div class="analysis-result">';
 
-        // Display result for each platform
+        // result for each platform
         for (const [platform, data] of Object.entries(analysis)) {
             const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
             const compatClass = data.compatible ? 'compatible' : 'incompatible';
@@ -419,7 +409,7 @@ const aiAnalyzer = {
         resultArea.innerHTML = html;
     },
 
-    // Display analysis error
+    // analysis error
     displayAnalysisError: function (errorMessage) {
         const resultArea = document.getElementById('compatibilityResults');
         if (resultArea) {
@@ -427,7 +417,7 @@ const aiAnalyzer = {
         }
     },
 
-    // Main analysis function
+    // primary analysis function
     analyzePlatformCompatibility: function (provider, apiKey, hlsData) {
         const prompt = this.buildAnalysisPrompt(hlsData);
 
@@ -440,9 +430,9 @@ const aiAnalyzer = {
         }
     },
 
-    // Build the prompt for the LLM
+    // prompt 
     buildAnalysisPrompt: function (hlsData) {
-        const dataString = JSON.stringify(hlsData, null, 2); // Pretty print for readability
+        const dataString = JSON.stringify(hlsData, null, 2); 
 
         return `
 Analyze the following HLS stream data derived from a 2-4 minute window:
@@ -492,7 +482,7 @@ Output ONLY the JSON object. Do not include any introductory text, explanations,
 `;
     },
 
-    // Update the callGeminiAPI function around line 430-450
+    // Gemini
     callGeminiAPI: function (apiKey, prompt) {
         const endpoint = `${this.config.endpoints.gemini}?key=${apiKey}`;
         const requestBody = {
@@ -522,7 +512,7 @@ Output ONLY the JSON object. Do not include any introductory text, explanations,
                     throw new Error("Gemini API Error: Empty response");
                 }
 
-                // Clean and parse the content
+                // clean and parse the content
                 const cleanedContent = content.replace(/^```json\s*|```$/g, '').trim();
                 try {
                     return JSON.parse(cleanedContent);
@@ -533,7 +523,7 @@ Output ONLY the JSON object. Do not include any introductory text, explanations,
             });
     },
 
-    // Call the Anthropic API
+    // Anthropic 
     callAnthropicAPI: function (apiKey, prompt) {
         const endpoint = this.config.endpoints.anthropic;
         const requestBody = {
@@ -550,7 +540,7 @@ Output ONLY the JSON object. Do not include any introductory text, explanations,
                 'Content-Type': 'application/json',
                 'x-api-key': apiKey,
                 'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true' // Add this header
+                'anthropic-dangerous-direct-browser-access': 'true' // << REQUIRED!
             },
             body: JSON.stringify(requestBody)
         })
@@ -568,7 +558,7 @@ Output ONLY the JSON object. Do not include any introductory text, explanations,
                     throw new Error("Anthropic API Error: Empty response");
                 }
 
-                // Clean and parse the content
+                // cleaner
                 const cleanedContent = content.replace(/^```json\s*|```$/g, '').trim();
                 try {
                     return JSON.parse(cleanedContent);
@@ -580,9 +570,8 @@ Output ONLY the JSON object. Do not include any introductory text, explanations,
     }
 };
 
-// Initialize when DOM is loaded
+// add ti the DOM when initialized/loaded
 document.addEventListener("DOMContentLoaded", function () {
-    // Initialize the AI analyzer
     aiAnalyzer.init();
     console.log("AI Analyzer module loaded");
 });

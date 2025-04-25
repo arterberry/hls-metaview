@@ -1,5 +1,6 @@
+// explainer.js
+
 document.addEventListener('DOMContentLoaded', function () {
-    // Update the title based on hash
     const explainerType = window.location.hash.slice(1) || 'scte';
     if (explainerType === 'cache') {
         document.title = 'VIDINFRA MetaView - Cache Explainer';
@@ -7,12 +8,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.title = 'VIDINFRA MetaView - SCTE-35 Explainer';
     }
 
-    // Receive data from opener
     window.addEventListener('message', function (event) {
-        // Verify origin for security
         if (event.origin !== window.location.origin) return;
 
-        // Process the data based on type
         if (event.data && event.data.type === 'scteData') {
             displayScteExplanation(event.data.scteData);
         } else if (event.data && event.data.type === 'cacheData') {
@@ -20,9 +18,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // If window was opened by parent, request data
     if (window.opener && !window.opener.closed) {
-        // Tell parent window we're ready
+        // share
         window.opener.postMessage({
             type: 'explainerReady',
             explainerType: explainerType
@@ -30,7 +27,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// Helper function to format time values in a more readable format
+// heleper function to format time values in a more readable format
 function formatTimeValue(seconds) {
     if (seconds < 60) {
         return `${seconds} seconds`;
@@ -44,11 +41,11 @@ function formatTimeValue(seconds) {
 }
 
 
-// Helper function to identify cache pattern from history
+// helper function to identify cache pattern from history
 function identifyCachePattern(history) {
     if (!history || history.length < 5) return "";
 
-    const recentHistory = history.slice(-10); // Look at last 10 entries
+    const recentHistory = history.slice(-10); // << use last 10 entries
     const hits = recentHistory.filter(val => val === 1).length;
     const misses = recentHistory.length - hits;
     const hitRatio = (hits / recentHistory.length) * 100;
@@ -62,7 +59,7 @@ function identifyCachePattern(history) {
     } else if (hitRatio < 20) {
         return "Your recent segments show mostly cache misses with occasional hits, suggesting this content is just beginning to be cached.";
     } else {
-        // Check for patterns in the sequence
+        // pattern chaecker per sequence
         const firstFewMisses = recentHistory.slice(0, 5).every(val => val === 0);
         const laterHits = recentHistory.slice(-5).filter(val => val === 1).length >= 3;
 
@@ -74,14 +71,13 @@ function identifyCachePattern(history) {
     }
 }
 
-// Function to generate and display SCTE explanation
+// generate and display SCTE explanation (IN PROGRESS)
 function displayScteExplanation(data) {
     const explanationElement = document.getElementById('explanationContent');
     if (!explanationElement) return;
 
     let explanationHTML = '<h2>Explanation of the SCTE-35 / Ad Tracking Metrics</h2><ul>';
 
-    // Ad Breaks explanation
     explanationHTML += `<li><strong>Ad Breaks: ${data.adCount} (${data.adCompletionRate}% complete)</strong>: `;
 
     if (data.adCount === 0) {
@@ -95,7 +91,6 @@ function displayScteExplanation(data) {
     }
     explanationHTML += '</li>';
 
-    // Est. Ad Time explanation
     explanationHTML += `<li><strong>Est. Ad Time: ${data.adDuration.toFixed(1)}s</strong>: `;
     if (data.adDuration > 0) {
         const minutes = Math.floor(data.adDuration / 60);
@@ -113,7 +108,6 @@ function displayScteExplanation(data) {
     }
     explanationHTML += '</li>';
 
-    // Recent Markers explanation
     explanationHTML += '<li><strong>Recent Markers</strong>: ';
     if (data.markers.length === 0) {
         explanationHTML += 'No SCTE-35 markers have been detected in this stream yet.';
@@ -127,7 +121,7 @@ function displayScteExplanation(data) {
     }
     explanationHTML += '</li>';
 
-    // Graph explanation
+    // graph explanation
     explanationHTML += '<li><strong>The Graph</strong>: ';
     if (data.adDuration === 0 && data.contentDuration === 0) {
         explanationHTML += 'The graph will display the ratio between ad time and content time once data is available.';
@@ -138,7 +132,7 @@ function displayScteExplanation(data) {
     }
     explanationHTML += '</li>';
 
-    // Add SCTE-35 detailed explanation section
+    // SCTE-35 detailed explanation section
     explanationHTML += '<li><strong>SCTE-35 Details</strong>: ';
     explanationHTML += 'The SCTE-35 details panel (if expanded) shows a deeper analysis of the SCTE-35 signals in the stream. ';
     explanationHTML += 'This includes the command type, event ID, PTS timing, and other technical metadata extracted from the binary SCTE-35 payload. ';
@@ -156,12 +150,12 @@ function displayScteExplanation(data) {
         <li><strong>Segmentation Descriptor:</strong> Provides detailed information about the type of segmentation event (ad start/end, program boundaries, etc.).</li>
     </ul>`;
 
-    // Update the content
+    // update content
     document.getElementById('explainerTitle').textContent = 'SCTE-35 / Ad Tracking Explainer';
     explanationElement.innerHTML = explanationHTML;
 }
 
-// Function to generate and display Cache explanation
+// generate and display cache explanation
 function displayCacheExplanation(data) {
     console.log("displayCacheExplanation called with data:", data);
     const explanationElement = document.getElementById('explanationContent');
@@ -169,7 +163,7 @@ function displayCacheExplanation(data) {
 
     let explanationHTML = '<h2>Explanation of Cache Performance and TTL Metrics</h2><ul>';
 
-    // Cache Hit Ratio explanation
+    // cache hit ratio explanation (a helper for me)
     explanationHTML += `<li><strong>Cache Hit Ratio: ${data.hitRatio}%</strong>: `;
     if (data.total === 0) {
         explanationHTML += 'No segments have been loaded yet. As you play the video, this will show the percentage of segments loaded from the CDN cache.';
@@ -193,7 +187,6 @@ function displayCacheExplanation(data) {
     } else {
         explanationHTML += 'The TTL directives control how long segments can be stored in cache: ';
 
-        // Replace the bullet point list with just the detailed explanation
         explanationHTML += `<h3>Understanding TTL Components</h3>
         <dl style="margin-left: 20px;">
             <dt><strong>Max Age: ${data.cacheTTL.maxAge} seconds (${formatTimeValue(data.cacheTTL.maxAge)})</strong></dt>
@@ -218,7 +211,7 @@ function displayCacheExplanation(data) {
     }
     explanationHTML += '</li>';
 
-    // Graph explanation
+    // graph explainer
     explanationHTML += '<li><strong>The Graph</strong>: ';
     explanationHTML += 'The line graph tracks cache performance over time. Points near the top (HIT) indicate segments loaded from cache, while points near the bottom (MISS) indicate segments that needed to be fetched from the origin.';
     if (data.history && data.history.length > 0) {
@@ -233,7 +226,6 @@ function displayCacheExplanation(data) {
 
     explanationHTML += `<p><strong>What is TTL?</strong> Time To Live (TTL) defines how long content can remain in cache before it must be revalidated with the origin server. Longer TTL values improve performance but may delay updates to content, while shorter TTL values ensure fresher content but may increase origin traffic.</p>`;
 
-    // Update the content
     document.getElementById('explainerTitle').textContent = 'Cache Performance Explainer';
     explanationElement.innerHTML = explanationHTML;
 }

@@ -1,8 +1,6 @@
-// jest.setup.js
-// Custom setup for Jest tests
+// jest.setup.js - custom setup for Jest tests
 
-// Add test-setup.js content here
-// Mock the DOM environment
+// add test-setup.js content here to mock the DOM environment
 document.body.innerHTML = `
 <div class="video-container">
   <video id="videoPlayer" controls></video>
@@ -19,7 +17,7 @@ document.body.innerHTML = `
 <div id="resolutionList"></div>
 `;
 
-// Mock HLS.js with a more complete structure
+// mock hls.js structure
 global.Hls = function () {
     return {
         loadSource: jest.fn(),
@@ -52,19 +50,18 @@ global.Hls.ErrorDetails = {
     BUFFER_STALLED_ERROR: 'bufferStalledError'
 };
 
-// The critical fix - add DefaultConfig with loader
 global.Hls.DefaultConfig = {
     loader: function () { /* Mock loader implementation */ }
 };
 
-// Mock video element methods
+// mock video element methods
 HTMLVideoElement.prototype.play = jest.fn().mockResolvedValue();
 HTMLVideoElement.prototype.addEventListener = jest.fn();
 HTMLVideoElement.prototype.canPlayType = jest.fn((type) => {
     return type === 'application/vnd.apple.mpegurl' ? 'maybe' : '';
 });
 
-// Mock Fetch API
+// mock Fetch API
 global.fetch = jest.fn().mockImplementation(() =>
     Promise.resolve({
         ok: true,
@@ -77,40 +74,38 @@ global.fetch = jest.fn().mockImplementation(() =>
     })
 );
 
-// Mock console methods
+// mock console methods
 global.console = {
     log: jest.fn(),
     error: jest.fn(),
     warn: jest.fn()
 };
 
-// Mock window.open
+// mock window.open
 global.window.open = jest.fn().mockImplementation(() => ({
     focus: jest.fn()
 }));
 
-// Mock window.close
+// mock window.close
 global.window.close = jest.fn();
 
-// Mock window.screen
+// mock window.screen
 global.window.screen = {
     width: 1920,
     height: 1080
 };
 
-// Mock Date functionality
+// mock Date functionality
 global.Date.prototype.toLocaleTimeString = jest.fn().mockReturnValue('12:00:00');
 
-// Mock alert
+// mock alert
 global.alert = jest.fn();
 
-// Add necessary global functions for testing
 global.addMetadataEntry = jest.fn();
 global.fetchAndParseManifest = jest.fn();
 global.parseAndDisplayResolutions = jest.fn();
 global.createCustomLoader = jest.fn().mockReturnValue(function () { });
 
-// Helper to reset mocks between tests
 global.resetAllMocks = () => {
     jest.clearAllMocks();
     document.getElementById('hlsUrl').value = '';
@@ -118,7 +113,7 @@ global.resetAllMocks = () => {
     document.getElementById('resolutionList').innerHTML = '';
 };
 
-// Add mock for chrome API
+// mock for chrome API
 global.chrome = {
     runtime: {
         onInstalled: {

@@ -1,5 +1,7 @@
+// admin.js
+
 document.addEventListener("DOMContentLoaded", function () {
-    // Elements
+    // elements
     const emailInput = document.getElementById("emailInput");
     const signinButton = document.getElementById("signinButton");
     const signinStatus = document.getElementById("signinStatus");
@@ -9,26 +11,24 @@ document.addEventListener("DOMContentLoaded", function () {
     const showKeyButton = document.getElementById("showKeyButton");
     const keyStatus = document.getElementById("keyStatus");
 
-    // JSON Editor Elements
     const settingsJsonEditor = document.getElementById("settingsJsonEditor");
     const channelsJsonEditor = document.getElementById("channelsJsonEditor");
     const saveJsonButton = document.getElementById("saveJsonButton");
     const jsonStatus = document.getElementById("jsonStatus");
 
-    // Tab Elements
     const settingsTabBtn = document.getElementById("settingsTabBtn");
     const channelsTabBtn = document.getElementById("channelsTabBtn");
     const settingsTab = document.getElementById("settingsTab");
     const channelsTab = document.getElementById("channelsTab");
 
-    // Constants
+    // constants
     const AI_KEY_STORAGE_KEY = "vidinfra_ai_key";
     const AI_PROVIDER_STORAGE_KEY = "vidinfra_ai_provider";
 
-    // Initialize
+    // initialize
     initializeAdminPanel();
 
-    // Event Listeners
+    // listeners
     if (signinButton) {
         signinButton.addEventListener("click", handleSignIn);
     }
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", function () {
         setProviderButton.addEventListener("click", handleSetProvider);
     }
 
-    // Tab Event Listeners
+    // tab event listeners
     if (settingsTabBtn) {
         settingsTabBtn.addEventListener("click", function () {
             switchTab('settings');
@@ -62,14 +62,11 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Functions
+    // base functions for Admin
     function initializeAdminPanel() {
-        // Check for stored AI key and provider
         try {
-            // First, get the API key
             chrome.storage.local.get([AI_KEY_STORAGE_KEY], function (result) {
                 if (result[AI_KEY_STORAGE_KEY]) {
-                    // Key exists, show as masked
                     aiKeyInput.value = "••••••••••••••••••••••••••";
                     aiKeyInput.classList.add("key-hidden");
                     keyStatus.textContent = "Key loaded from storage";
@@ -77,10 +74,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             });
 
-            // Separately get the provider setting
             chrome.storage.local.get([AI_PROVIDER_STORAGE_KEY], function (result) {
                 if (result[AI_PROVIDER_STORAGE_KEY] && aiProviderSelect) {
-                    // Set the dropdown to the stored provider
                     aiProviderSelect.value = result[AI_PROVIDER_STORAGE_KEY];
                 }
             });
@@ -88,7 +83,7 @@ document.addEventListener("DOMContentLoaded", function () {
             console.error("Error accessing storage:", error);
         }
 
-        // Load dummy Settings JSON data (placeholder)
+        // load dummy JSON data (placeholder)
         const dummySettings = {
             "settings": {
                 "cacheMonitoring": true,
@@ -105,7 +100,7 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         };
 
-        // Load Channels JSON data
+        // load channels JSON data
         const dummyChannels = {
             "channels": {
                 "foxsports1": {
@@ -120,7 +115,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         };
 
-        // Populate both editors
         if (settingsJsonEditor) {
             settingsJsonEditor.value = JSON.stringify(dummySettings, null, 2);
         }
@@ -129,19 +123,16 @@ document.addEventListener("DOMContentLoaded", function () {
             channelsJsonEditor.value = JSON.stringify(dummyChannels, null, 2);
         }
 
-        // Setup initial tab state
         switchTab('settings');
     }
 
-    // Function to switch between tabs
+    // tab functions
     function switchTab(tabName) {
-        // Reset all tabs
         settingsTabBtn.classList.remove('active');
         channelsTabBtn.classList.remove('active');
         settingsTab.classList.remove('active');
         channelsTab.classList.remove('active');
 
-        // Activate selected tab
         if (tabName === 'settings') {
             settingsTabBtn.classList.add('active');
             settingsTab.classList.add('active');
@@ -166,7 +157,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // This is just a placeholder - no actual authentication
+        // a placeholder - no actual authentication
         signinStatus.textContent = "Sign in successful (placeholder)";
         signinStatus.className = "status-message";
     }
@@ -174,7 +165,6 @@ document.addEventListener("DOMContentLoaded", function () {
     function handleSetKey() {
         const key = aiKeyInput.value.trim();
 
-        // Skip if it's the masked placeholder
         if (aiKeyInput.classList.contains("key-hidden")) {
             keyStatus.textContent = "Please enter a new key or click Show to edit the existing key";
             keyStatus.className = "error-message";
@@ -187,10 +177,9 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // Store the key securely in chrome.storage
+        // store the key securely in chrome.storage
         try {
             chrome.storage.local.set({ [AI_KEY_STORAGE_KEY]: key }, function () {
-                // Mask the key in the input
                 aiKeyInput.value = "••••••••••••••••••••••••••";
                 aiKeyInput.classList.add("key-hidden");
 
@@ -207,7 +196,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function toggleShowKey() {
         if (aiKeyInput.classList.contains("key-hidden")) {
-            // Show the key
+            // TODO: make this show the key -- not working yet
             try {
                 chrome.storage.local.get([AI_KEY_STORAGE_KEY], function (result) {
                     if (result[AI_KEY_STORAGE_KEY]) {
@@ -227,7 +216,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 keyStatus.className = "error-message";
             }
         } else {
-            // Hide the key
             aiKeyInput.value = "••••••••••••••••••••••••••";
             aiKeyInput.classList.add("key-hidden");
             showKeyButton.textContent = "Show";
@@ -235,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function handleSaveJson() {
-        // Determine which tab is active
+
         const isSettingsActive = settingsTab.classList.contains('active');
         const currentEditor = isSettingsActive ? settingsJsonEditor : channelsJsonEditor;
         const jsonText = currentEditor.value.trim();
@@ -247,16 +235,15 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         try {
-            // Validate JSON format
             const jsonObj = JSON.parse(jsonText);
 
-            // This is just a placeholder - no actual saving
+            // a placeholder - no actual saving
             jsonStatus.textContent = isSettingsActive ?
                 "Settings configuration saved successfully (placeholder)" :
                 "Channels configuration saved successfully (placeholder)";
             jsonStatus.className = "status-message";
 
-            // Log the configuration for debugging
+            // log the configuration for debugging
             console.log(`Saved ${isSettingsActive ? 'Settings' : 'Channels'} configuration:`, jsonObj);
 
         } catch (error) {
@@ -265,7 +252,7 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // Handle setting AI provider
+    // handle setting AI
     function handleSetProvider() {
         const provider = aiProviderSelect.value;
 
@@ -275,7 +262,7 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // Store the provider in chrome.storage
+        // store the provider in chrome.storage
         try {
             chrome.storage.local.set({ [AI_PROVIDER_STORAGE_KEY]: provider }, function () {
                 keyStatus.textContent = `AI provider set to ${provider === 'anthropic' ? 'Anthropic Claude' : 'Google Gemini'}`;

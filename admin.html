@@ -146,7 +146,7 @@
 <body>
     <h1>VIDINFRA MetaView - Admin Panel</h1>
     
-    <!-- Sign-in Section -->
+    <!-- sign-in -->
     <div class="admin-section">
         <div class="section-title">Admin Sign-in</div>
         <div class="section-content">
@@ -158,7 +158,7 @@
         </div>
     </div>
     
-    <!-- AI Key Management Section -->
+    <!-- AI key management -->
     <div class="admin-section">
         <div class="section-title">AI Key Management</div>
         <div class="section-content">
@@ -179,24 +179,21 @@
         </div>
     </div>
     
-    <!-- JSON Editor Section with Tabs -->
+    <!-- TODO: Build JSON editor -->
     <div class="admin-section">
         <div class="section-title">JSON Configuration</div>
         <div class="section-content">
-            <!-- Tab Navigation -->
+            
             <div class="config-tabs">
                 <button id="settingsTabBtn" class="config-tab-btn active">Settings</button>
                 <button id="channelsTabBtn" class="config-tab-btn">Channels</button>
             </div>
             
-            <!-- Tab Content -->
             <div class="config-tab-content">
-                <!-- Settings Tab -->
                 <div id="settingsTab" class="config-tab-pane active">
                     <textarea id="settingsJsonEditor" placeholder="Enter settings configuration here"></textarea>
                 </div>
                 
-                <!-- Channels Tab -->
                 <div id="channelsTab" class="config-tab-pane">
                     <textarea id="channelsJsonEditor" placeholder="Enter channels configuration here"></textarea>
                 </div>

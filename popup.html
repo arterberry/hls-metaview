@@ -26,9 +26,7 @@
                     <div id="metadataList"></div>
                 </div>
                 <div class="export-area">
-                    <!-- Admin button on the left -->
-                    <button id="adminButton">Admin</button>
-                    <!-- Export and Clear buttons will be added by JavaScript -->
+                    <!-- placeholder for export button (will be added later) -->
                 </div>
             </div>
         </div>
@@ -237,10 +235,10 @@
         </div>
     </div>
 
-    <!-- Load order -->
-    <script src="html2canvas.min.js"></script>
+    <!-- local HLS.js add defer -->
     <script src="hls.min.js"></script>
-    <script src="scte35.js"></script>
+    <!-- popup.js after HLS.js add defer  -->
+    <script src="popup.js"></script>
     <script src="metadata.js"></script>
     <script src="popup.js"></script>
     <script src="export.js"></script>

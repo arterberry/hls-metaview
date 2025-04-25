@@ -1,18 +1,17 @@
-// export.js - Data export functionality for HLS MetaView
+// export.js - export hls data and screen capture
 
 const exportModule = {
 
     captureScreen: function() {
         console.log("Starting screen capture...");
         
-        // Get the video container element
+        // video container 
         const videoContainer = document.querySelector('.video-container');
         if (!videoContainer) {
             console.error("Video container not found");
             return Promise.reject("Video container not found");
         }
         
-        // Use html2canvas to capture the video container
         return html2canvas(videoContainer, {
             logging: false,
             useCORS: true,
@@ -20,111 +19,87 @@ const exportModule = {
             backgroundColor: "#000000"
         }).then(canvas => {
             console.log("Screen capture successful");
-            return canvas.toDataURL('image/png'); // Use PNG for better quality
+            return canvas.toDataURL('image/png'); // PNG format
         }).catch(error => {
             console.error("Screen capture failed:", error);
             return Promise.reject(error);
         });
     },
 
-    // Export both data and screen capture
+    // export both data and screen capture
     exportWithScreenCapture: function () {
         console.log("Starting export with screen capture...");
 
-        // First capture the screen
         this.captureScreen().then(screenshotData => {
-            // Generate timestamp (same format for both files)
             const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
             
-            // Save the screenshot as a separate file
             const screenshotFilename = `metaview_screenshot_${timestamp}.png`;
             this.saveScreenshot(screenshotData, screenshotFilename);
 
-            // Add a short delay before downloading the JSON
             setTimeout(() => {
-                // Convert to JSON
                 const jsonData = JSON.stringify(data, null, 2);
-                // Create and trigger download
                 this.downloadJSON(jsonData, `hls-metaview-export-${timestamp}.json`);
             }, 1000); // 1000ms delay
 
-            // Collect data from various sources
             const data = this.collectExportData();
 
-            // Add both screenshot reference and the actual base64 data
             data.screenshot = {
                 filename: screenshotFilename,
                 captureTime: timestamp,
-                imageData: screenshotData // Include the base64 data in the JSON
+                imageData: screenshotData // the base64 data (image)
             };
             console.log("Screenshot added to export data and saved as file:", screenshotFilename);
 
-            // Convert to JSON
             const jsonData = JSON.stringify(data, null, 2);
 
-            // Create and trigger download
             this.downloadJSON(jsonData, `hls-metaview-export-${timestamp}.json`);
         }).catch(error => {
             console.error("Screen capture failed, exporting without screenshot:", error);
-            // Fall back to regular export
             this.exportToJSON();
         });
     },
 
-    // Export session data to JSON file
-    // Add to export.js, in the exportToJSON function
+    // export session data to JSON file
     exportToJSON: function () {
         console.log("Starting export to JSON...");
     
-        // Check if metadataBuffer is accessible
         console.log("metadataBuffer available:", !!window.metadataBuffer);
         if (window.metadataBuffer) {
             console.log("Current metadata entries:", window.metadataBuffer.entries.length);
         }
     
-        // First, try to capture the screen
         this.captureScreen().then(screenshotData => {
-            // Generate timestamp (same format for both files)
             const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
             
-            // Save the screenshot as a separate file
             const screenshotFilename = `metaview_screenshot_${timestamp}.png`;
             this.saveScreenshot(screenshotData, screenshotFilename);
             
-            // Collect data for JSON
             const data = this.collectExportData();
             
-            // Add both screenshot reference and the actual base64 data
             data.screenshot = {
                 filename: screenshotFilename,
                 captureTime: timestamp,
-                imageData: screenshotData // Include the base64 data in the JSON
+                imageData: screenshotData //  base64 data (image)
             };
             
-            // Save JSON with both reference and image data
             const jsonData = JSON.stringify(data, null, 2);
             this.downloadJSON(jsonData, `hls-metaview-export-${timestamp}.json`);
             
         }).catch(error => {
-            // If screen capture fails, just export the JSON without it
             console.error("Screen capture failed, exporting without screenshot:", error);
             
-            // Collect data from various sources
             const data = this.collectExportData();
             
-            // Convert to JSON
             const jsonData = JSON.stringify(data, null, 2);
             
-            // Create and trigger download
             this.downloadJSON(jsonData, `hls-metaview-export-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`);
         });
     
         return true;
     },
 
-    // Add function to save screenshot data
+    // function to save screenshot data
     saveScreenshot: function (screenshotData, filename) {
-        // Create a download link
         const link = document.createElement('a');
         link.href = screenshotData;
         link.download = filename;
@@ -134,7 +109,7 @@ const exportModule = {
         console.log(`Screenshot saved as ${filename}`);
     },    
     
-    // Update the collectExportData function in export.js
+    // collectExportData function to gather data for export
     collectExportData: function () {
         const exportData = {
             timestamp: new Date().toISOString(),
@@ -146,16 +121,15 @@ const exportModule = {
             streamInfo: this.captureStreamInfo()
         };
 
-        // Get metadata from buffer - properly access the global metadata buffer
+        // metadata from buffer 
         if (window.metadataBuffer && Array.isArray(window.metadataBuffer.entries)) {
-            // Make sure we're getting a copy of the array to avoid reference issues
             exportData.metadata = [...window.metadataBuffer.entries];
             console.log("Collected metadata entries:", exportData.metadata.length);
         } else {
             console.warn("Metadata buffer not found or invalid in window object");
         }
 
-        // Get cache metrics if available
+        // cache metrics if available
         if (window.cacheData) {
             exportData.cacheMetrics = {
                 hits: window.cacheData.hits || 0,
@@ -163,20 +137,19 @@ const exportModule = {
                 total: window.cacheData.total || 0,
                 hitRatio: window.cacheData.total > 0 ?
                     ((window.cacheData.hits / window.cacheData.total) * 100).toFixed(2) : 0,
-                history: [...(window.cacheData.history || [])] // Make a copy
+                history: [...(window.cacheData.history || [])] // << copy
             };
         }
 
         return exportData;
     },
     
-    // Capture resolutions information
+    // resolutions information
     captureResolutions: function() {
         const resolutions = [];
         const resolutionItems = document.querySelectorAll('.resolution-item');
         
         resolutionItems.forEach(item => {
-            // Parse resolution item to extract structured data
             const text = item.textContent;
             const match = text.match(/Resolution: (\d+x\d+), Bandwidth: (\d+) kbps/);
             
@@ -194,7 +167,7 @@ const exportModule = {
         return resolutions;
     },
     
-    // Capture additional stream information
+    // additional stream information
     captureStreamInfo: function() {
         return {
             videoElement: {
@@ -207,7 +180,7 @@ const exportModule = {
         };
     },
     
-    // Create download for JSON data
+    // download for JSON data
     downloadJSON: function(jsonData, filename) {
         const blob = new Blob([jsonData], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
@@ -222,8 +195,7 @@ const exportModule = {
     }
 };
 
-// Add export button when DOM is loaded
-// Add export button when DOM is loaded
+// export button when DOM is loaded
 document.addEventListener("DOMContentLoaded", function() {
     const exportArea = document.querySelector('.export-area');
     if (exportArea) {
@@ -232,7 +204,7 @@ document.addEventListener("DOMContentLoaded", function() {
         exportButton.id = 'exportDataButton';
         exportButton.textContent = 'Export Data + Screen Capture';
         exportButton.style.padding = '8px 12px';
-        exportButton.style.background = '#4CAF50'; // Green color (keep as is)
+        exportButton.style.background = '#4CAF50'; // green color (keep it pretty)
         exportButton.style.color = 'white';
         exportButton.style.border = 'none';
         exportButton.style.borderRadius = '4px';
@@ -240,15 +212,12 @@ document.addEventListener("DOMContentLoaded", function() {
         exportButton.style.marginLeft = '5px';
         
         exportButton.addEventListener('click', function() {
-            // Change button state to indicate processing
             const originalText = exportButton.textContent;
             exportButton.textContent = 'Capturing...';
             exportButton.disabled = true;
-            
-            // Use the new export with screen capture function
             exportModule.exportWithScreenCapture();
             
-            // Reset button after a short delay
+            // reset button after delay
             setTimeout(() => {
                 exportButton.textContent = originalText;
                 exportButton.disabled = false;
@@ -259,5 +228,5 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// Make export module available globally
+// export module to global scope
 window.exportModule = exportModule;
