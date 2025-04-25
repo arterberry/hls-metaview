@@ -1,9 +1,8 @@
 # HLS MetaView
 
-HLS MetaView is a Chrome extension that allows you to analyze and play HLS (HTTP Live Streaming) video streams with real-time metadata extraction and visualization.
+HLS MetaView is a Chrome extension that allows you to analyze and play HLS (HTTP Live Streaming) video streams with real-time metadata extraction, visualization, and administrative configuration.
 
 <img src="hls-metaview.png" alt="HLS MetaView" width="600" height="343" style="max-width: 100%; height: auto;">
-
 
 ## Features
 
@@ -14,24 +13,41 @@ HLS MetaView is a Chrome extension that allows you to analyze and play HLS (HTTP
 - Monitor HTTP headers from segment requests
 - Track buffer status and playback health
 - Support for multiple instances and quick-access to test streams
+- Admin panel for configuration (AI key, JSON settings)
 
 ## Installation
 
-### From Source
+### From Built Source (Recommended)
 
-1. Clone or download this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" using the toggle in the top-right corner
-4. Click "Load unpacked" and select the extension directory
-5. The extension icon should appear in your Chrome toolbar
+1.  **Clone or Download:** Get the source code from this repository.
+    ```bash
+    git clone https://github.com/arterberry/hls-metaviewl
+    cd hls-metaview
+    ```
+2.  **Install Dependencies:** Make sure you have Node.js and npm installed. Then run:
+    ```bash
+    npm install
+    ```
+3.  **Build the Extension:** Run the build script. This will compile necessary files and place them in the `dist` folder. It also runs tests.
+    ```bash
+    ./build.sh
+    ```
+    *(If the build fails on tests, ensure dependencies are installed correctly (`npm install`) or check test configurations.)*
+4.  **Load into Chrome:**
+    *   Open Chrome and navigate to `chrome://extensions/`.
+    *   Enable "Developer mode" using the toggle switch, usually in the top-right corner.
+    *   Click the "Load unpacked" button.
+    *   Navigate to and select the `dist` folder **inside** your `hls-metaview` project directory.
+5.  **Ready:** The HLS MetaView extension icon should appear in your Chrome toolbar.
 
 ## Usage
 
-1. Click the HLS MetaView icon in your Chrome toolbar to open the extension
-2. Enter an HLS URL in the input field (must end with `.m3u8`)
-3. Click "Play" to load and play the stream
-4. View metadata, resolutions, and other information in the panels
-5. Use the "Playback Helper" link for quick access to test streams
+1.  Click the HLS MetaView icon in your Chrome toolbar to open the extension popup.
+2.  Enter an HLS URL in the input field (must end with `.m3u8`).
+3.  Click "Play" to load and play the stream.
+4.  View metadata, resolutions, and other information in the panels.
+5.  Use the "Playback Helper" link for quick access to test streams.
+6.  Access the Admin Panel via the extension's options or a designated link to configure settings (IN PROGRESS).
 
 ## Playback Helper
 
@@ -46,38 +62,21 @@ The Playback Helper provides:
 
 ```
 hls-metaview/
-├── background.js     # Background service worker
-├── helper.html       # Playback helper popup
-├── helper.js         # Helper popup functionality
-├── hls.min.js        # HLS.js library
-├── icon.png          # Extension icon
-├── manifest.json     # Extension manifest
-├── metadata.js       # Metadata handling functions
-├── popup.html        # Main extension interface
-├── popup.js          # Main functionality
-└── styles.css        # Extension styling
+├── background.js        # Background service worker
+├── helper.html          # Playback helper popup
+├── helper.js            # Helper popup 
+├── explainer.js         # Explainer popup 
+├── hls.min.js           # HLS.js library
+├── html2canvas.min.js   # HTML2Canvas library
+├── manifest.json        # Extension manifest
+├── metadata.js          # Metadata 
+├── qoe.js               # QoE functions
+├── popup.html           # Main extension interface
+├── popup.js             # Main functionality
+└── styles.css           # Extension styling
 ```
 
-### Running Tests
-
-This project uses Jest for testing. To run tests:
-
-1. Install dependencies:
-```
-npm install
-```
-
-2. Run tests:
-```
-npm test
-```
-
-3. Run tests with coverage:
-```
-npm run test:coverage
-```
-
-### Key Functionality
+### Base Functionality
 
 - **HLS.js Integration**: The extension uses HLS.js for playback with custom configuration for improved buffer management.
 - **Metadata Extraction**: Real-time parsing of manifests and segments for metadata.
